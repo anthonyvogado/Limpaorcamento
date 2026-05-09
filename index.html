@@ -4,13 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Limpador de Orçamentos - Empresa</title>
+    <!-- Ícone de Varinha Mágica na aba do navegador -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🪄</text></svg>">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
     </style>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🪄</text></svg>">
 </head>
 <body class="bg-slate-50 min-h-screen p-4 md:p-8 text-slate-800">
 
@@ -21,7 +23,18 @@
                 <i data-lucide="wand-2" class="text-blue-600 w-8 h-8"></i>
                 Limpador de Orçamentos
             </h1>
-            <p class="text-slate-500">Formatação profissional para WhatsApp - Uso Interno</p>
+            <p class="text-slate-500">Formatação profissional para WhatsApp - Empresa</p>
+        </div>
+
+        <!-- Dados do Vendedor -->
+        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row items-center gap-4">
+            <div class="flex items-center gap-2 text-blue-600 font-semibold shrink-0">
+                <i data-lucide="user" class="w-5 h-5"></i>
+                Vendedor:
+            </div>
+            <input type="text" id="vendedor" 
+                class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none transition-all" 
+                placeholder="Nome do vendedor (Ex: João Silva)">
         </div>
 
         <!-- Grade Principal -->
@@ -40,8 +53,8 @@
                     placeholder="Cole o orçamento bruto aqui..."></textarea>
                 
                 <button onclick="processBudget()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl shadow-sm flex items-center justify-center gap-2 transition-colors active:scale-[0.98]">
-                    <i data-lucide="wand-2" class="w-5 h-5"></i>
-                    Limpar Orçamento
+                    <i data-lucide="sparkles" class="w-5 h-5"></i>
+                    Limpar e Formatar
                 </button>
             </div>
 
@@ -56,7 +69,7 @@
                     <p id="error-message"></p>
                 </div>
 
-                <textarea id="output" class="w-full h-80 p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-green-500 outline-none resize-none text-sm transition-all" 
+                <textarea id="output" class="w-full h-80 p-4 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-green-500 outline-none resize-none text-sm transition-all font-mono" 
                     placeholder="O texto limpo aparecerá aqui..."></textarea>
 
                 <button id="copy-btn" onclick="copyToClipboard()" disabled class="w-full bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 font-semibold py-3 px-4 rounded-xl shadow-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98]">
@@ -68,7 +81,7 @@
     </div>
 
     <script>
-        // Inicializar ícones
+        // Inicializar ícones Lucide
         lucide.createIcons();
 
         function parseMoney(str) {
@@ -104,6 +117,7 @@
 
         function processBudget() {
             const input = document.getElementById('input').value;
+            const vendedor = document.getElementById('vendedor').value.trim();
             if (!input.trim()) return;
 
             toggleError(false);
@@ -117,6 +131,7 @@
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i];
 
+                // Filtros de linhas indesejadas
                 if (
                     /Um Ticket por Pax/i.test(line) ||
                     /Data uso/i.test(line) ||
@@ -129,6 +144,7 @@
 
                 if (/^[\d.,]+$/.test(line)) continue;
 
+                // Captura de valor Total do sistema
                 if (/total/i.test(line)) {
                     let match = line.match(/R\$\s*([\d.,]+)/i);
                     if (match) {
@@ -139,6 +155,7 @@
                     continue;
                 }
 
+                // Identifica linha combinada: Qtd x Tipo - (R$ Valor)
                 let combinedMatch = line.match(/^(\d+\s*x\s*.*?)\s*[-]*\s*\(\s*(R\$\s*[\d.,]+)\s*\)$/i);
                 if (combinedMatch) {
                     currentProduct.variations.push({
@@ -149,12 +166,14 @@
                     continue;
                 }
 
+                // Identifica apenas Quantidade
                 let qtyMatch = line.match(/^(\d+\s*x\s*.*)$/i);
                 if (qtyMatch && !line.includes('(R$')) {
                     currentQty = qtyMatch[1].trim();
                     continue;
                 }
 
+                // Identifica Valor entre parênteses
                 let valMatch = line.match(/^\(\s*(R\$\s*[\d.,]+)\s*\)$/i);
                 if (valMatch) {
                     if (currentQty) {
@@ -168,6 +187,7 @@
                     continue;
                 }
 
+                // Se não for nada acima, é o Nome do Produto
                 if (currentProduct.variations.length > 0) {
                     items.push({ ...currentProduct });
                     currentProduct = { name: line, variations: [] };
@@ -181,18 +201,39 @@
             }
 
             if (items.length === 0) {
-                toggleError(true, 'Nenhum item válido foi encontrado. Verifique o texto copiado.');
+                toggleError(true, 'Não identificamos itens no texto colado. Verifique o padrão.');
                 return;
             }
 
-            let outText = items.map(item => {
+            // Gerar Data de Validade Automática
+            const hoje = new Date();
+            const diaMes = hoje.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+
+            // Início do Orçamento
+            let outText = `Orçamento com validade até hoje [${diaMes}], preços dinâmicos com alterações sem aviso prévio 👇\n\n`;
+
+            // Listagem de Itens e Variações
+            outText += items.map(item => {
                 let s = item.name ? item.name + '\n' : '';
                 s += item.variations.map(v => `${v.qty} - ${v.value}`).join('\n');
                 return s;
             }).join('\n\n');
 
+            // Cálculo do Total Final e Rodapé
             const finalTotal = explicitTotal > 0 ? explicitTotal : sumTotal;
             outText += `\n\n*Total: R$ ${formatMoney(isNaN(finalTotal) ? 0 : finalTotal)}*`;
+            
+            // Inserção do Nome do Vendedor
+            if (vendedor) {
+                outText += `\n\n🪪 Feito por: *${vendedor}*`;
+            }
+
+            // Cálculo da Regra de Parcelamento (1x por cada R$ 100, max 10x)
+            let parcelas = Math.floor(finalTotal / 100);
+            if (parcelas < 1) parcelas = 1;
+            if (parcelas > 10) parcelas = 10;
+
+            outText += `\n\n💰 Parcelamento até ${parcelas}x sem juros ou no PIX`;
 
             document.getElementById('output').value = outText;
             document.getElementById('copy-btn').disabled = false;
@@ -219,7 +260,7 @@
                     btnText.innerText = 'Copiar para WhatsApp';
                 }, 2000);
             } catch (err) {
-                alert('Erro ao copiar');
+                console.error('Falha ao copiar texto: ', err);
             }
             document.body.removeChild(textArea);
         }
